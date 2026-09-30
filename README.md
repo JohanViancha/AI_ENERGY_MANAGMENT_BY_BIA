@@ -33,7 +33,7 @@ Aplicación web tipo **SaaS de Energy Management** que permite:
 
 1. **Dashboard** — KPIs agregados: medidores, consumo total, anomalías detectadas, prioridad alta, confianza IA, último análisis.
 2. **Gestión de medidores** — lista con filtros (todos/normales/alertas/críticas), búsqueda por `meter_id` y ordenamiento.
-3. **Detalle de medidor** — consumo actual vs baseline, variación, estado, histórico y variables eléctricas.
+3. **Detalle de medidor** — estado, consumo por rango (24 h / 7 d / 14 d) con las ventanas de anomalía sombreadas, variables eléctricas (voltaje, corriente, factor de potencia) y anomalías recientes. La comparación contra baseline queda pendiente de un endpoint del backend.
 4. **Anomalías IA** — tabla priorizada con tipo, severidad, confianza y acción recomendada.
 5. **Investigación** — expediente completo: qué encontró la IA, evidencia, eventos relacionados, acción.
 6. **Run AI Analysis** — botón para disparar el análisis y ver el progreso en vivo.
@@ -86,7 +86,10 @@ Acción recomendada
 
 - Node.js 20 LTS
 - npm 10+
-- Backend NestJS corriendo (local o remoto)
+- Backend NestJS (`AI_ENERGY_API_BY_BIA`) corriendo, en la rama `spec-03-contrato-api-http` o ya fusionada, con:
+  - Firestore sembrado (`npm run seed`).
+  - Al menos un análisis ejecutado (`npm run analyze`); sin él el dashboard muestra "Aún no hay análisis".
+  - El origen del frontend (`http://localhost:5173` con Vite) en su variable `CORS_ORIGIN`.
 - Proyecto Firebase con Authentication habilitado (Email/Password)
 - Web app registrada en Firebase Console (para obtener las credenciales)
 
@@ -152,24 +155,30 @@ frontend/
 │   ├── lib/
 │   │   ├── firebase.ts
 │   │   ├── axios.ts
+│   │   ├── query-client.ts
+│   │   ├── query-keys.ts
+│   │   ├── format.ts
 │   │   └── utils.ts
 │   ├── services/
 │   │   ├── meters.service.ts
 │   │   ├── anomalies.service.ts
-│   │   ├── ai.service.ts
-│   │   └── dashboard.service.ts
+│   │   ├── dashboard.service.ts
+│   │   └── ai.service.ts          # pendiente (SPEC 04)
 │   ├── hooks/
 │   │   ├── use-auth.ts
 │   │   ├── use-meters.ts
-│   │   ├── use-anomalies.ts
-│   │   └── use-analysis.ts
+│   │   ├── use-meter.ts
+│   │   ├── use-meter-readings.ts
+│   │   ├── use-meter-anomalies.ts
+│   │   ├── use-dashboard-summary.ts
+│   │   └── use-analysis.ts        # pendiente (SPEC 04)
 │   ├── store/
 │   │   └── auth.store.ts
 │   ├── pages/
 │   │   ├── login/
 │   │   ├── dashboard/
 │   │   ├── meters/
-│   │   ├── meter-detail/
+│   │   ├── meter-detail/          # meter-detail-page.tsx, meter-ranges.ts
 │   │   ├── anomalies/
 │   │   ├── anomaly-detail/
 │   │   └── not-found/
@@ -182,7 +191,8 @@ frontend/
 │   │   │   ├── build-breadcrumbs.ts
 │   │   │   └── nav-items.ts
 │   │   ├── shared/
-│   │   │   └── empty-state.tsx
+│   │   │   ├── empty-state.tsx
+│   │   │   └── error-state.tsx
 │   │   ├── ui/                
 │   │   ├── dashboard/
 │   │   │   ├── kpi-card.tsx
@@ -190,15 +200,22 @@ frontend/
 │   │   ├── meters/
 │   │   │   ├── meter-table.tsx
 │   │   │   ├── meter-filters.tsx
-│   │   │   └── meter-status-badge.tsx
+│   │   │   ├── meter-list-params.ts
+│   │   │   ├── meter-status.ts
+│   │   │   ├── meter-status-badge.tsx
+│   │   │   └── meter-summary-cards.tsx
 │   │   ├── charts/
 │   │   │   ├── consumption-chart.tsx
-│   │   │   └── baseline-comparison-chart.tsx
+│   │   │   ├── metric-chart.tsx
+│   │   │   ├── chart-tooltip.tsx
+│   │   │   └── chart-data.ts
 │   │   ├── anomalies/
-│   │   │   ├── anomaly-table.tsx
+│   │   │   ├── anomaly-labels.ts
 │   │   │   ├── anomaly-type-badge.tsx
 │   │   │   ├── severity-badge.tsx
-│   │   │   └── confidence-indicator.tsx
+│   │   │   ├── recent-anomalies-table.tsx
+│   │   │   ├── anomaly-table.tsx          # pendiente (SPEC 04)
+│   │   │   └── confidence-indicator.tsx   # pendiente (SPEC 04)
 │   │   └── ai/
 │   │       ├── run-analysis-button.tsx
 │   │       ├── analysis-progress.tsx
@@ -207,7 +224,9 @@ frontend/
 │   │   ├── meter.ts
 │   │   ├── reading.ts
 │   │   ├── anomaly.ts
-│   │   └── analysis.ts
+│   │   ├── dashboard.ts
+│   │   ├── api-error.ts
+│   │   └── analysis.ts            # pendiente (SPEC 04)
 │   └── styles/
 │       └── globals.css
 ├── public/

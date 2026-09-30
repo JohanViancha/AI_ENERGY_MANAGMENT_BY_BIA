@@ -4,6 +4,7 @@ import { AppLayout } from '@/components/layout/app-layout'
 import { AnomaliesPage } from '@/pages/anomalies/anomalies-page'
 import { DashboardPage } from '@/pages/dashboard/dashboard-page'
 import { LoginPage } from '@/pages/login/login-page'
+import { MeterDetailPage } from '@/pages/meter-detail/meter-detail-page'
 import { MetersPage } from '@/pages/meters/meters-page'
 import { NotFoundPage } from '@/pages/not-found/not-found-page'
 import { ProtectedRoute } from '@/router/protected-route'
@@ -18,6 +19,7 @@ export const router = createBrowserRouter([
         children: [
           { path: '/', element: <DashboardPage /> },
           { path: '/meters', element: <MetersPage /> },
+          { path: '/meters/:meterId', element: <MeterDetailPage /> },
           { path: '/anomalies', element: <AnomaliesPage /> },
         ],
       },
