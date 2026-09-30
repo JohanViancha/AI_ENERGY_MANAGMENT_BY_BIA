@@ -6,4 +6,6 @@ export const queryKeys = {
     ['meters', meterId, 'readings', { from, to }] as const,
   meterAnomalies: (meterId: string, analysisId: string) =>
     ['anomalies', { meterId, analysisId }] as const,
+  anomalies: (analysisId: string) => ['anomalies', { analysisId }] as const,
+  anomaly: (id: string) => ['anomalies', id] as const,
 }

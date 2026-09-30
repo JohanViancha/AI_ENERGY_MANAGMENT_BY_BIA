@@ -17,6 +17,7 @@ Consume la API del backend NestJS y se autentica con Firebase Auth.
 - [Scripts disponibles](#-scripts-disponibles)
 - [Estructura del proyecto](#-estructura-del-proyecto)
 - [Rutas](#-rutas)
+- [Análisis IA en vivo](#-análisis-ia-en-vivo)
 - [Componentes clave](#-componentes-clave)
 - [Manejo de estado](#-manejo-de-estado)
 - [Autenticación](#-autenticación)
@@ -34,9 +35,9 @@ Aplicación web tipo **SaaS de Energy Management** que permite:
 1. **Dashboard** — KPIs agregados: medidores, consumo total, anomalías detectadas, prioridad alta, confianza IA, último análisis.
 2. **Gestión de medidores** — lista con filtros (todos/normales/alertas/críticas), búsqueda por `meter_id` y ordenamiento.
 3. **Detalle de medidor** — estado, consumo por rango (24 h / 7 d / 14 d) con las ventanas de anomalía sombreadas, variables eléctricas (voltaje, corriente, factor de potencia) y anomalías recientes. La comparación contra baseline queda pendiente de un endpoint del backend.
-4. **Anomalías IA** — tabla priorizada con tipo, severidad, confianza y acción recomendada.
-5. **Investigación** — expediente completo: qué encontró la IA, evidencia, eventos relacionados, acción.
-6. **Run AI Analysis** — botón para disparar el análisis y ver el progreso en vivo.
+4. **Anomalías IA** — tabla priorizada de la última corrida, con filtros por severidad, tipo y medidor guardados en la URL.
+5. **Investigación** — expediente completo: qué encontró la IA, evidencia (baseline vs observado, ventana, señales y puntajes por detector) y acción recomendada. Los eventos correlacionados quedan fuera hasta que el backend exponga un endpoint.
+6. **Run AI Analysis** — botón del Dashboard que dispara el análisis y muestra el progreso de las 7 fases en vivo.
 
 El diseño debe **sentirse como un producto SaaS real**, no como una demo técnica.
 
@@ -157,21 +158,25 @@ frontend/
 │   │   ├── axios.ts
 │   │   ├── query-client.ts
 │   │   ├── query-keys.ts
+│   │   ├── analysis-phases.ts
 │   │   ├── format.ts
 │   │   └── utils.ts
 │   ├── services/
 │   │   ├── meters.service.ts
 │   │   ├── anomalies.service.ts
 │   │   ├── dashboard.service.ts
-│   │   └── ai.service.ts          # pendiente (SPEC 04)
+│   │   ├── ai.service.ts
+│   │   └── analysis-stream.service.ts   # único punto que conoce Firestore
 │   ├── hooks/
 │   │   ├── use-auth.ts
 │   │   ├── use-meters.ts
 │   │   ├── use-meter.ts
 │   │   ├── use-meter-readings.ts
 │   │   ├── use-meter-anomalies.ts
+│   │   ├── use-anomalies.ts
+│   │   ├── use-anomaly.ts
 │   │   ├── use-dashboard-summary.ts
-│   │   └── use-analysis.ts        # pendiente (SPEC 04)
+│   │   └── use-analysis.ts        # useAnalysisRun
 │   ├── store/
 │   │   └── auth.store.ts
 │   ├── pages/
@@ -180,7 +185,7 @@ frontend/
 │   │   ├── meters/
 │   │   ├── meter-detail/          # meter-detail-page.tsx, meter-ranges.ts
 │   │   ├── anomalies/
-│   │   ├── anomaly-detail/
+│   │   ├── anomaly-detail/        # anomaly-detail-page.tsx
 │   │   └── not-found/
 │   ├── components/
 │   │   ├── layout/
@@ -214,8 +219,10 @@ frontend/
 │   │   │   ├── anomaly-type-badge.tsx
 │   │   │   ├── severity-badge.tsx
 │   │   │   ├── recent-anomalies-table.tsx
-│   │   │   ├── anomaly-table.tsx          # pendiente (SPEC 04)
-│   │   │   └── confidence-indicator.tsx   # pendiente (SPEC 04)
+│   │   │   ├── anomaly-table.tsx
+│   │   │   ├── anomaly-filters.tsx
+│   │   │   ├── anomaly-list-params.ts
+│   │   │   └── confidence-indicator.tsx
 │   │   └── ai/
 │   │       ├── run-analysis-button.tsx
 │   │       ├── analysis-progress.tsx
@@ -226,7 +233,7 @@ frontend/
 │   │   ├── anomaly.ts
 │   │   ├── dashboard.ts
 │   │   ├── api-error.ts
-│   │   └── analysis.ts            # pendiente (SPEC 04)
+│   │   └── analysis.ts
 │   └── styles/
 │       └── globals.css
 ├── public/
@@ -246,10 +253,35 @@ frontend/
 | Ruta | Página | Protegida |
 |------|--------|-----------|
 | `/login` | Login con Firebase Auth | No |
-| `/` | Dashboard (KPIs) | Sí |
+| `/` | Dashboard (KPIs y Run AI Analysis) | Sí |
 | `/meters` | Lista de medidores | Sí |
 | `/meters/:meterId` | Detalle de medidor | Sí |
 | `/anomalies` | Lista de anomalías IA | Sí |
 | `/anomalies/:id` | Investigación de anomalía | Sí |
 | `*` | 404 | — |
 
+
+---
+
+## ⚡ Análisis IA en vivo
+
+El botón **Run AI Analysis** del Dashboard llama a `POST /ai/analyze` (cuerpo `{}`: todos los medidores, parámetros por defecto del backend). Es el único lugar que lo hace: `useAnalysisRun` en `src/hooks/use-analysis.ts`.
+
+- **Progreso en vivo:** el hook se suscribe con `onSnapshot` al documento `analyses/{analysisId}` de Firestore y `AnalysisProgress` muestra la barra global y las 7 fases (`READINGS` → `RECOMMENDATION`).
+- **Modo polling (fallback):** si la suscripción falla (por ejemplo `permission-denied`), el hook consulta `GET /ai/analysis/:id` cada 2 s y `AnalysisProgress` muestra "Modo polling". No se muestra ningún toast.
+- **Persistencia:** el `analysisId` activo se guarda en `sessionStorage` (`energy:active-analysis-id`) para retomar el progreso al recargar. Se borra al llegar a `COMPLETED` o `FAILED`.
+- **Al completar:** se invalidan las queries `['dashboard']`, `['meters']` y `['anomalies']`, así que KPIs, medidores y anomalías se refrescan sin recargar.
+- **Formato de datos:** los documentos de Firestore usan `snake_case`; `mapAnalysisDoc` (`analysis-stream.service.ts`) los convierte a `camelCase` una sola vez.
+
+### Reglas de Firestore requeridas
+
+El backend no incluye `firestore.rules`. Para que el progreso llegue por `onSnapshot` (sin polling), la colección `analyses` debe permitir lectura a usuarios autenticados:
+
+```
+match /analyses/{analysisId} {
+  allow read: if request.auth != null;
+  allow write: if false;
+}
+```
+
+Limita la regla a `analyses`; no la copies a otras colecciones. Las reglas y su despliegue son responsabilidad del backend. Sin ellas la app sigue funcionando en modo polling.

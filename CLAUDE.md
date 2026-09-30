@@ -2,24 +2,24 @@
 
 Este archivo proporciona orientación a Claude Code (o cualquier agente de IA) cuando trabaja con el código de este repositorio.
 
-## Estado del proyecto: auth, layout y pantallas de lectura listos, resto por construir
+## Estado del proyecto: auth, layout, lectura y análisis IA listos, resto por construir
 
-El README describe la app SaaS prevista —un dashboard de gestión energética con medidores, anomalías detectadas por IA y flujos de investigación, que consume un backend NestJS y se autentica vía Firebase Auth—. Hoy existen tres specs:
+El README describe la app SaaS prevista —un dashboard de gestión energética con medidores, anomalías detectadas por IA y flujos de investigación, que consume un backend NestJS y se autentica vía Firebase Auth—. Hoy existen cuatro specs:
 
 - **Spec 01 (base de auth):** Firebase Auth con login Email/Password, `AuthProvider`/`useAuth`, `ProtectedRoute`, cliente Axios con `Bearer <idToken>` y tests.
 - **Spec 02 (layout SaaS):** `AppLayout` (`src/components/layout/`) con `Sidebar` (fijo en `lg`, drawer `Sheet` por debajo), `Header` (breadcrumbs, email y Logout) y breadcrumbs derivados de la ruta (`buildBreadcrumbs` + `ROUTE_LABELS`). `<Toaster>` de sonner montado en `main.tsx`. `EmptyState` reutilizable en `src/components/shared/`. Router: `/login` y `*` sin layout; `/`, `/meters` y `/anomalies` bajo `ProtectedRoute` → `AppLayout`.
 
 - **Spec 03 (dashboard y medidores con datos reales):** `DashboardPage`, `MetersPage` y `MeterDetailPage` (`src/pages/meter-detail/`, ruta `/meters/:meterId`) son **reales** y consumen el backend. Servicios en `src/services/` (`meters`, `anomalies`, `dashboard`), hooks de TanStack Query en `src/hooks/` (`use-meters`, `use-meter`, `use-meter-readings`, `use-meter-anomalies`, `use-dashboard-summary`), fábrica de query keys en `src/lib/query-keys.ts`, tipos en `src/types/` (el JSON del backend viaja en `camelCase`) y formateo `es-CO` en `src/lib/format.ts`. `QueryCache.onError` global en `src/lib/query-client.ts` (toast salvo 401, 404 o datos en caché) y `ErrorState` en `src/components/shared/`. El estado del medidor (`OK`/`ALERT`/`CRITICAL`) se deriva en el frontend con `getMeterStatus`; el backend no lo devuelve. Filtros, búsqueda y orden de `/meters` viven en la URL (`meter-list-params.ts`).
 
-`AnomaliesPage` sigue siendo un **placeholder** con un `EmptyState`; su contenido real (y `POST /ai/analyze`) llega en el spec 04.
+- **Spec 04 (análisis IA y anomalías):** `AnomaliesPage` (`/anomalies`) y `AnomalyDetailPage` (`src/pages/anomaly-detail/`, ruta `/anomalies/:id`) son **reales**. La lista usa el `analysisId` de `GET /dashboard/summary` (última corrida `COMPLETED`), con filtros de severidad, tipo y medidor en la URL (`anomaly-list-params.ts`) y orden fijo por `priorityScore` desc. El Dashboard tiene `RunAnalysisButton` y `AnalysisProgress` (`src/components/ai/`). `ai.service` y `use-analysis` (`useAnalysisRun`) existen. `db` de Firestore se exporta desde `src/lib/firebase.ts`. **`POST /ai/analyze` solo se llama desde `useAnalysisRun`**. El progreso llega por `onSnapshot` de `analyses/{id}` (`analysis-stream.service.ts`, único punto que conoce Firestore y mapea `snake_case` → `camelCase`) con fallback a polling de `GET /ai/analysis/:id` cada 2 s; el `analysisId` activo vive en `sessionStorage` (`energy:active-analysis-id`). El expediente no muestra eventos correlacionados (no hay endpoint).
 
-**La estructura del README sigue siendo el objetivo a construir.** Antes de asumir que un archivo, hook, servicio o componente del README existe, revisa `src/`: análisis de IA (`ai.service`, `use-analysis`), lista e investigación de anomalías y stores todavía no existen.
+**La estructura del README sigue siendo el objetivo a construir.** Antes de asumir que un archivo, hook, servicio o componente del README existe, revisa `src/`: los stores todavía no existen.
 
 ## Stack
 
 Instalado y configurado: React 19, React Router v6, TanStack Query, Zustand (instalado, sin uso todavía), Axios, Recharts, Tailwind CSS v3 (`tailwind.config.ts`), shadcn/ui + Radix (`components.json`, componentes en `src/components/ui/`, incl. `sheet`, `breadcrumb`, `table`, `badge`, `skeleton` y `tabs`), Firebase Auth, React Hook Form + Zod, Lucide React, y Vitest + Testing Library.
 
-Sonner está instalado (se importa `Toaster` directamente de `sonner`, sin el wrapper de shadcn); `toast()` solo se llama desde el `QueryCache.onError` global. Recharts está instalado; en jsdom `ResponsiveContainer` mide 0, así que los gráficos se verifican a mano. Si una funcionalidad necesita otra dependencia que no está instalada, **instálala**.
+Sonner está instalado (se importa `Toaster` directamente de `sonner`, sin el wrapper de shadcn); `toast()` solo se llama desde el `QueryCache.onError` global (los errores de `POST /ai/analyze` se muestran en línea, sin toast). Recharts está instalado; en jsdom `ResponsiveContainer` mide 0, así que los gráficos se verifican a mano. Si una funcionalidad necesita otra dependencia que no está instalada, **instálala**.
 
 shadcn/ui se añade a mano o con la CLI revisando `components.json`: el proyecto usa Tailwind v3, no v4.
 
@@ -49,6 +49,6 @@ Configuración plana (`eslint.config.js`): `@eslint/js` recommended + `typescrip
 ## Carencias a tener en cuenta
 
 - Sin configuración de CI y sin archivo LICENSE — no referencies nada de esto como si existiera.
-- Tests para `ProtectedRoute`, `AuthProvider`, el interceptor de Axios, `buildBreadcrumbs`, `Sidebar`, `Header`, `EmptyState`, `ErrorState`, servicios, `format`, `query-client`, `getMeterStatus`, `applyMeterListParams`, badges y las tres pantallas de datos (mockean `@/services/*`; sin MSW). Los gráficos solo se prueban en su estado vacío y sus `aria-label`; `AppLayout` no se prueba en jsdom (las media queries no aplican) y se verifica a mano. Sin medición de cobertura configurada.
+- Tests para `useAnalysisRun`, `AnalysisProgress`, `applyAnomalyListParams`, `AnomaliesPage`, `AnomalyDetailPage`, `ProtectedRoute`, `AuthProvider`, el interceptor de Axios, `buildBreadcrumbs`, `Sidebar`, `Header`, `EmptyState`, `ErrorState`, servicios, `format`, `query-client`, `getMeterStatus`, `applyMeterListParams`, badges y las pantallas de datos (mockean `@/services/*`; sin MSW). `firebase/firestore` y `@/lib/firebase` se mockean (`onSnapshot` no funciona en jsdom); la suscripción real se verifica a mano contra Firestore. Los gráficos solo se prueban en su estado vacío y sus `aria-label`; `AppLayout` no se prueba en jsdom (las media queries no aplican) y se verifica a mano. Sin medición de cobertura configurada.
 - `npm audit` reporta 2 vulnerabilidades moderadas en `react-router` v6; la corrección exige migrar a v7, pendiente de decidir en otro spec.
 - Repositorio de pocos commits — no hay convención de mensajes de commit establecida aquí más allá de los estándares globales del usuario.

@@ -2,6 +2,7 @@ import type { KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { AnomalyTypeBadge } from '@/components/anomalies/anomaly-type-badge'
+import { ConfidenceIndicator } from '@/components/anomalies/confidence-indicator'
 import { SeverityBadge } from '@/components/anomalies/severity-badge'
 import {
   Table,
@@ -11,17 +12,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { EMPTY_VALUE, formatDateTime, formatPercent } from '@/lib/format'
+import { EMPTY_VALUE, formatDateTime, formatNumber } from '@/lib/format'
 import type { Anomaly } from '@/types/anomaly'
 
-export const RECENT_ANOMALIES_LIMIT = 5
-
-export interface RecentAnomaliesTableProps {
+export interface AnomalyTableProps {
+  /** Ya filtradas y ordenadas por prioridad. */
   anomalies: Anomaly[]
 }
 
-/** Las anomalías más recientes por `detectedAt`; cada fila abre su expediente. */
-export function RecentAnomaliesTable({ anomalies }: RecentAnomaliesTableProps) {
+/** Lista priorizada de anomalías; cada fila abre el expediente y se opera con teclado. */
+export function AnomalyTable({ anomalies }: AnomalyTableProps) {
   const navigate = useNavigate()
 
   function openDetail(id: string) {
@@ -32,23 +32,21 @@ export function RecentAnomaliesTable({ anomalies }: RecentAnomaliesTableProps) {
     if (event.key === 'Enter') openDetail(id)
   }
 
-  const recent = [...anomalies]
-    .sort((a, b) => new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime())
-    .slice(0, RECENT_ANOMALIES_LIMIT)
-
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Severidad</TableHead>
+          <TableHead>Prioridad</TableHead>
+          <TableHead>Medidor</TableHead>
           <TableHead>Tipo</TableHead>
+          <TableHead>Severidad</TableHead>
           <TableHead>Confianza</TableHead>
           <TableHead>Detectada</TableHead>
-          <TableHead>Motivo</TableHead>
+          <TableHead>Acción recomendada</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {recent.map((anomaly) => (
+        {anomalies.map((anomaly) => (
           <TableRow
             key={anomaly.id}
             tabIndex={0}
@@ -56,15 +54,23 @@ export function RecentAnomaliesTable({ anomalies }: RecentAnomaliesTableProps) {
             onKeyDown={(event) => handleRowKeyDown(event, anomaly.id)}
             className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
           >
+            <TableCell className="font-medium tabular-nums">
+              {formatNumber(anomaly.priorityScore, 1)}
+            </TableCell>
+            <TableCell>{anomaly.meterId}</TableCell>
+            <TableCell>
+              <AnomalyTypeBadge type={anomaly.type} />
+            </TableCell>
             <TableCell>
               <SeverityBadge severity={anomaly.severity} />
             </TableCell>
             <TableCell>
-              <AnomalyTypeBadge type={anomaly.type} />
+              <ConfidenceIndicator confidence={anomaly.confidence} />
             </TableCell>
-            <TableCell>{formatPercent(anomaly.confidence)}</TableCell>
             <TableCell>{formatDateTime(anomaly.detectedAt)}</TableCell>
-            <TableCell className="max-w-md">{anomaly.reason ?? EMPTY_VALUE}</TableCell>
+            <TableCell className="max-w-xs truncate" title={anomaly.recommendedAction ?? undefined}>
+              {anomaly.recommendedAction ?? EMPTY_VALUE}
+            </TableCell>
           </TableRow>
         ))}
       </TableBody>

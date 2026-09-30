@@ -21,6 +21,14 @@ describe('buildBreadcrumbs', () => {
     ])
   })
 
+  it('returns Dashboard / Anomalías / {id} for an anomaly detail', () => {
+    expect(buildBreadcrumbs('/anomalies/an-x1')).toEqual([
+      { label: 'Dashboard', to: '/' },
+      { label: 'Anomalías', to: '/anomalies' },
+      { label: 'an-x1', to: '/anomalies/an-x1' },
+    ])
+  })
+
   it('shows unknown segments as-is with their cumulative path', () => {
     expect(buildBreadcrumbs('/meters/abc')).toEqual([
       { label: 'Dashboard', to: '/' },

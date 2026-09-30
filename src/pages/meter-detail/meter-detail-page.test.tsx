@@ -76,6 +76,7 @@ function renderPage(path = '/meters/M-109') {
         <Routes>
           <Route path="/meters/:meterId" element={<MeterDetailPage />} />
           <Route path="/meters" element={<div>Lista de medidores</div>} />
+          <Route path="/anomalies/:id" element={<div>Expediente</div>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -119,7 +120,7 @@ describe('MeterDetailPage', () => {
     expect(getAnomalies).toHaveBeenCalledWith({ analysisId: 'an-1', meterId: 'M-109' })
   })
 
-  it('muestra solo las 5 anomalías más recientes, sin enlaces ni botones', async () => {
+  it('muestra solo las 5 anomalías más recientes', async () => {
     vi.mocked(getAnomalies).mockResolvedValue(Array.from({ length: 7 }, (_, i) => buildAnomaly(i)))
 
     renderPage()
@@ -130,8 +131,23 @@ describe('MeterDetailPage', () => {
     expect(within(rows[0]).getByText('Motivo 6')).toBeInTheDocument()
     expect(screen.queryByText('Motivo 0')).not.toBeInTheDocument()
     expect(screen.queryByText('Motivo 1')).not.toBeInTheDocument()
-    expect(within(screen.getByLabelText('Anomalías recientes')).queryByRole('link')).toBeNull()
-    expect(within(screen.getByLabelText('Anomalías recientes')).queryByRole('button')).toBeNull()
+  })
+
+  it('abre el expediente al pulsar una anomalía reciente', async () => {
+    renderPage()
+
+    await userEvent.click(await screen.findByText('Motivo 1'))
+    expect(screen.getByText('Expediente')).toBeInTheDocument()
+  })
+
+  it('abre el expediente con Enter sobre la fila', async () => {
+    renderPage()
+
+    await screen.findByText('Motivo 1')
+    screen.getAllByRole('row')[1].focus()
+    await userEvent.keyboard('{Enter}')
+
+    expect(screen.getByText('Expediente')).toBeInTheDocument()
   })
 
   it('muestra "Medidor no encontrado" con enlace a /meters ante un 404', async () => {

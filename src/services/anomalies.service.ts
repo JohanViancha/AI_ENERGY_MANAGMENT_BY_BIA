@@ -11,3 +11,9 @@ export async function getAnomalies(params: AnomaliesParams): Promise<Anomaly[]> 
   const response = await api.get<Anomaly[]>('/anomalies', { params })
   return response.data
 }
+
+/** Obtiene una anomalía por id para el expediente. */
+export async function getAnomaly(id: string): Promise<Anomaly> {
+  const response = await api.get<Anomaly>(`/anomalies/${id}`)
+  return response.data
+}

@@ -10,7 +10,7 @@ function getStatus(error: unknown): number | undefined {
   return isAxiosError(error) ? error.response?.status : undefined
 }
 
-function getErrorMessage(error: unknown): string {
+export function getErrorMessage(error: unknown): string {
   if (isAxiosError<Partial<ApiErrorResponse>>(error)) {
     const message = error.response?.data?.message
     if (Array.isArray(message) && message.length > 0) return message.join('. ')

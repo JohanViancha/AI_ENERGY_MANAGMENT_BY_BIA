@@ -1,13 +1,22 @@
 import { AlertTriangle, Clock, Gauge, ShieldAlert, Sparkles, Zap } from 'lucide-react'
 
+import { AnalysisProgress } from '@/components/ai/analysis-progress'
+import { RunAnalysisButton } from '@/components/ai/run-analysis-button'
 import { KpiCard } from '@/components/dashboard/kpi-card'
 import { SummaryPanel } from '@/components/dashboard/summary-panel'
 import { EmptyState } from '@/components/shared/empty-state'
 import { ErrorState } from '@/components/shared/error-state'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useAnalysisRun } from '@/hooks/use-analysis'
 import { useDashboardSummary } from '@/hooks/use-dashboard-summary'
 import { useMeters } from '@/hooks/use-meters'
-import { formatDateTime, formatKwh, formatNumber, formatPercent, formatRelative } from '@/lib/format'
+import {
+  formatDateTime,
+  formatKwh,
+  formatNumber,
+  formatPercent,
+  formatRelative,
+} from '@/lib/format'
 import type { MeterSummary } from '@/types/meter'
 
 /** Suma las últimas lecturas ignorando los `null`; sin ninguna lectura no hay total. */
@@ -22,10 +31,24 @@ function sumCurrentConsumption(meters: MeterSummary[]): number | null {
 export function DashboardPage() {
   const meters = useMeters()
   const summary = useDashboardSummary()
+  const analysisRun = useAnalysisRun()
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Dashboard</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold">Dashboard</h1>
+        <RunAnalysisButton isRunning={analysisRun.isRunning} onRun={analysisRun.start} />
+      </div>
+
+      {analysisRun.startError && (
+        <p role="alert" className="text-sm text-destructive">
+          {analysisRun.startError}
+        </p>
+      )}
+
+      {(analysisRun.analysis !== null || analysisRun.isRunning) && (
+        <AnalysisProgress analysis={analysisRun.analysis} transport={analysisRun.transport} />
+      )}
 
       <section aria-label="Indicadores de medidores" className="grid gap-4 sm:grid-cols-2">
         {meters.isError && !meters.data ? (

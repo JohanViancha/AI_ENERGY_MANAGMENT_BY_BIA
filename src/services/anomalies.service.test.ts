@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { api } from '@/lib/axios'
-import { getAnomalies } from '@/services/anomalies.service'
+import { getAnomalies, getAnomaly } from '@/services/anomalies.service'
 
 vi.mock('@/lib/axios', () => ({ api: { get: vi.fn() } }))
 
@@ -22,5 +22,15 @@ describe('anomalies.service', () => {
       params: { analysisId: 'an-1', meterId: 'M-109' },
     })
     expect(result).toBe(anomalies)
+  })
+
+  it('getAnomaly hace GET /anomalies/:id', async () => {
+    const anomaly = { id: 'a1' }
+    get.mockResolvedValue({ data: anomaly })
+
+    const result = await getAnomaly('a1')
+
+    expect(get).toHaveBeenCalledWith('/anomalies/a1')
+    expect(result).toBe(anomaly)
   })
 })

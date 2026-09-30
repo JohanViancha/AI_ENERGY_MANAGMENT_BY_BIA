@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
+import { getFirestore } from 'firebase/firestore'
 
 // Vite solo sustituye accesos estáticos a import.meta.env.VITE_*, por eso
 // cada variable se lee por separado en lugar de iterar por nombre.
@@ -24,3 +25,4 @@ const app = initializeApp({
 })
 
 export const auth = getAuth(app)
+export const db = getFirestore(app)

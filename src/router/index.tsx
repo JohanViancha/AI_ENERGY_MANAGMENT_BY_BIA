@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router-dom'
 
 import { AppLayout } from '@/components/layout/app-layout'
 import { AnomaliesPage } from '@/pages/anomalies/anomalies-page'
+import { AnomalyDetailPage } from '@/pages/anomaly-detail/anomaly-detail-page'
 import { DashboardPage } from '@/pages/dashboard/dashboard-page'
 import { LoginPage } from '@/pages/login/login-page'
 import { MeterDetailPage } from '@/pages/meter-detail/meter-detail-page'
@@ -21,6 +22,7 @@ export const router = createBrowserRouter([
           { path: '/meters', element: <MetersPage /> },
           { path: '/meters/:meterId', element: <MeterDetailPage /> },
           { path: '/anomalies', element: <AnomaliesPage /> },
+          { path: '/anomalies/:id', element: <AnomalyDetailPage /> },
         ],
       },
     ],
