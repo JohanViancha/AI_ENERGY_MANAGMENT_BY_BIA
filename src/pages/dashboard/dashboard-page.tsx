@@ -1,26 +1,14 @@
-import { useNavigate } from 'react-router-dom'
+import { LayoutDashboard } from 'lucide-react'
 
-import { Button } from '@/components/ui/button'
-import { useAuth } from '@/hooks/use-auth'
+import { EmptyState } from '@/components/shared/empty-state'
 
-/** Pantalla protegida `/`; por ahora solo muestra el usuario y permite cerrar sesión. */
+/** Pantalla protegida `/`; placeholder hasta el SPEC 03. */
 export function DashboardPage() {
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
-
-  const handleLogout = async () => {
-    await logout()
-    navigate('/login', { replace: true })
-  }
-
   return (
-    <main className="min-h-screen p-6">
-      <header className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">{user?.email}</span>
-        <Button variant="outline" onClick={handleLogout}>
-          Logout
-        </Button>
-      </header>
-    </main>
+    <EmptyState
+      icon={LayoutDashboard}
+      title="Dashboard"
+      description="Aquí se mostrará el resumen de consumo energético."
+    />
   )
 }

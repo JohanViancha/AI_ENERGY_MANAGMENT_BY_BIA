@@ -2,17 +2,22 @@
 
 Este archivo proporciona orientación a Claude Code (o cualquier agente de IA) cuando trabaja con el código de este repositorio.
 
-## Estado del proyecto: base de auth lista, resto por construir
+## Estado del proyecto: auth y layout listos, resto por construir
 
-El README describe la app SaaS prevista —un dashboard de gestión energética con medidores, anomalías detectadas por IA y flujos de investigación, que consume un backend NestJS y se autentica vía Firebase Auth—. Hoy existe solo la base (spec 01): Firebase Auth con login Email/Password, `AuthProvider`/`useAuth`, `ProtectedRoute`, cliente Axios con `Bearer <idToken>`, router (`/login`, `/` vacía, `*` 404) y tests.
+El README describe la app SaaS prevista —un dashboard de gestión energética con medidores, anomalías detectadas por IA y flujos de investigación, que consume un backend NestJS y se autentica vía Firebase Auth—. Hoy existen dos specs:
 
-**La estructura del README sigue siendo el objetivo a construir.** Antes de asumir que un archivo, hook, servicio o componente del README existe, revisa `src/`: medidores, anomalías, `AppLayout`, servicios y stores todavía no existen.
+- **Spec 01 (base de auth):** Firebase Auth con login Email/Password, `AuthProvider`/`useAuth`, `ProtectedRoute`, cliente Axios con `Bearer <idToken>` y tests.
+- **Spec 02 (layout SaaS):** `AppLayout` (`src/components/layout/`) con `Sidebar` (fijo en `lg`, drawer `Sheet` por debajo), `Header` (breadcrumbs, email y Logout) y breadcrumbs derivados de la ruta (`buildBreadcrumbs` + `ROUTE_LABELS`). `<Toaster>` de sonner montado en `main.tsx`. `EmptyState` reutilizable en `src/components/shared/`. Router: `/login` y `*` sin layout; `/`, `/meters` y `/anomalies` bajo `ProtectedRoute` → `AppLayout`.
+
+`DashboardPage`, `MetersPage` y `AnomaliesPage` son **placeholders** con un `EmptyState`; su contenido real llega en los specs 03 y 04.
+
+**La estructura del README sigue siendo el objetivo a construir.** Antes de asumir que un archivo, hook, servicio o componente del README existe, revisa `src/`: medidores, anomalías, servicios y stores todavía no existen.
 
 ## Stack
 
-Instalado y configurado: React 19, React Router v6, TanStack Query, Zustand (instalado, sin uso todavía), Axios, Tailwind CSS v3 (`tailwind.config.ts`), shadcn/ui + Radix (`components.json`, componentes en `src/components/ui/`), Firebase Auth, React Hook Form + Zod, Lucide React, y Vitest + Testing Library.
+Instalado y configurado: React 19, React Router v6, TanStack Query, Zustand (instalado, sin uso todavía), Axios, Tailwind CSS v3 (`tailwind.config.ts`), shadcn/ui + Radix (`components.json`, componentes en `src/components/ui/`, incl. `sheet` y `breadcrumb`), Firebase Auth, React Hook Form + Zod, Lucide React, y Vitest + Testing Library.
 
-Aún sin instalar: Recharts y Sonner. Cuando una funcionalidad los necesite, **instálalos**.
+Sonner está instalado (se importa `Toaster` directamente de `sonner`, sin el wrapper de shadcn; aún no se llama a `toast()`). Aún sin instalar: Recharts. Cuando una funcionalidad lo necesite, **instálalo**.
 
 shadcn/ui se añade a mano o con la CLI revisando `components.json`: el proyecto usa Tailwind v3, no v4.
 
@@ -42,6 +47,6 @@ Configuración plana (`eslint.config.js`): `@eslint/js` recommended + `typescrip
 ## Carencias a tener en cuenta
 
 - Sin configuración de CI y sin archivo LICENSE — no referencies nada de esto como si existiera.
-- Tests solo para `ProtectedRoute`, `AuthProvider` y el interceptor de Axios; sin medición de cobertura configurada.
+- Tests para `ProtectedRoute`, `AuthProvider`, el interceptor de Axios, `buildBreadcrumbs`, `Sidebar`, `Header` y `EmptyState`; `AppLayout` no se prueba en jsdom (las media queries no aplican) y se verifica a mano. Sin medición de cobertura configurada.
 - `npm audit` reporta 2 vulnerabilidades moderadas en `react-router` v6; la corrección exige migrar a v7, pendiente de decidir en otro spec.
 - Repositorio de pocos commits — no hay convención de mensajes de commit establecida aquí más allá de los estándares globales del usuario.

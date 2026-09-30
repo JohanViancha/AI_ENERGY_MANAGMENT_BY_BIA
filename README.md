@@ -175,9 +175,14 @@ frontend/
 │   │   └── not-found/
 │   ├── components/
 │   │   ├── layout/
+│   │   │   ├── app-layout.tsx
 │   │   │   ├── sidebar.tsx
 │   │   │   ├── header.tsx
-│   │   │   └── app-layout.tsx
+│   │   │   ├── breadcrumbs.tsx
+│   │   │   ├── build-breadcrumbs.ts
+│   │   │   └── nav-items.ts
+│   │   ├── shared/
+│   │   │   └── empty-state.tsx
 │   │   ├── ui/                
 │   │   ├── dashboard/
 │   │   │   ├── kpi-card.tsx
